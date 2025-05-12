@@ -1,83 +1,53 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib
+import numpy as np
+import plotly.graph_objects as go
+from streamlit_autorefresh import st_autorefresh
 
-matplotlib.use("Agg")
-plt.style.use('dark_background')
+st.set_page_config(page_title="Live Drilling Dashboard", layout="wide")
+st.title("📉 Live Drilling Monitoring - Animated with Alerts")
 
-st.set_page_config(page_title="Live Drilling Dashboard", layout="wide", page_icon="\U0001F6E0", initial_sidebar_state="expanded")
-st.markdown("""
-    <style>
-    body {
-        background-color: #0e1117;
-        color: #c7c7c7;
-    }
-    .stApp {
-        background-color: #0e1117;
-    }
-    .st-bf {
-        color: #c7c7c7;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Auto-refresh every 5 seconds
+st_autorefresh(interval=5000, key="refresh")
 
-st.title("🛠️ Real-Time Drilling Dashboard")
+# Initialize simulated live data
+if 'data' not in st.session_state:
+    st.session_state.data = pd.DataFrame({
+        'Time': pd.date_range(end=pd.Timestamp.now(), periods=60, freq='S'),
+        'ROP': np.random.uniform(0, 100, 60),
+        'WOB': np.random.uniform(120, 160, 60),
+        'RPM': np.random.uniform(30, 70, 60),
+        'Pressure': np.random.uniform(1000, 2000, 60)
+    })
 
-uploaded_file = st.file_uploader("Upload drilling sensor CSV", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-else:
-    st.info("Using sample data.")
-    df = pd.read_csv("sample_data.csv")
+# Append new row
+new_row = pd.DataFrame({
+    'Time': [pd.Timestamp.now()],
+    'ROP': [np.random.uniform(0, 100)],
+    'WOB': [np.random.uniform(120, 160)],
+    'RPM': [np.random.uniform(30, 70)],
+    'Pressure': [np.random.uniform(1000, 2000)]
+})
+st.session_state.data = pd.concat([st.session_state.data, new_row]).tail(100)
 
-df['Timestamp'] = pd.to_datetime(df['YYYY/MM/DD'] + ' ' + df['HH:MM:SS'])
-df.set_index('Timestamp', inplace=True)
-df.sort_index(inplace=True)
+# Select variable to plot
+variable = st.selectbox("Select Variable", ['ROP', 'WOB', 'RPM', 'Pressure'])
 
-sensor_columns = [
-    'Rate Of Penetration (ft_per_hr)', 'Weight on Bit (klbs)',
-    'Rotary RPM (RPM)', 'Standpipe Pressure (psi)',
-    'Hook Load (klbs)', 'Flow (flow_percent)',
-    'Differential Pressure (psi)'
-]
+# Alert threshold example (dynamic marker)
+threshold = 1800 if variable == 'Pressure' else None
+df = st.session_state.data
 
-step = st.slider("Live Scroll Range (Last N Records)", min_value=5, max_value=len(df), value=10, step=1)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=df['Time'], y=df[variable], mode='lines+markers', name=variable))
 
-st.subheader("📊 Sensor Time Series")
-selected_metric = st.selectbox("Select metric to visualize", sensor_columns)
+# Annotate if value exceeds threshold
+if threshold:
+    alert_points = df[df[variable] > threshold]
+    for _, row in alert_points.iterrows():
+        fig.add_annotation(x=row['Time'], y=row[variable],
+                           text="⚠️ Spike",
+                           showarrow=True, arrowhead=1,
+                           bgcolor="red", font=dict(color="white"))
 
-fig, ax = plt.subplots(figsize=(14, 4))
-latest_data = df.tail(step)
-ax.plot(latest_data.index, latest_data[selected_metric], marker='o', color='cyan')
-ax.set_title(f"{selected_metric} Over Time", fontsize=14)
-ax.set_xlabel("Timestamp")
-ax.set_ylabel(selected_metric)
-st.pyplot(fig)
-
-with st.expander("📊 Summary Statistics"):
-    st.dataframe(df[sensor_columns].describe())
-
-with st.expander("🔗 Correlation Matrix"):
-    st.dataframe(df[sensor_columns].corr())
-
-if st.button("🔮 Show Summary Insights & Alerts"):
-    def generate_alerts(row):
-        alerts = []
-        if row['Rate Of Penetration (ft_per_hr)'] == 0 and row['Weight on Bit (klbs)'] > 140 and row['Rotary RPM (RPM)'] > 40:
-            alerts.append("🚨 Bit stall detected")
-        if row['Flow (flow_percent)'] < 10 and row['Standpipe Pressure (psi)'] < 100:
-            alerts.append("⚠️ Possible circulation loss")
-        if row['Differential Pressure (psi)'] > 600:
-            alerts.append("⚡ High differential pressure")
-        return "; ".join(alerts)
-
-    df['Alerts'] = df.apply(generate_alerts, axis=1)
-    summary_alerts = df[df['Alerts'] != ""][['Alerts']]
-
-    if not summary_alerts.empty:
-        st.markdown("### 📢 Operational Summary Alerts")
-        for alert in summary_alerts['Alerts'].tail(10):
-            st.error(alert)
-    else:
-        st.success("✅ No major issues detected in the current drilling interval.")
+fig.update_layout(title=f"Live {variable} Trend", template='plotly_dark', xaxis_title="Time", yaxis_title=variable)
+st.plotly_chart(fig, use_container_width=True)

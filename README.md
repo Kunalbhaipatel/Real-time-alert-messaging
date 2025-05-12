@@ -1,17 +1,21 @@
-# 🛠️ Live Drilling Dashboard with Alerts
+# 📉 Live Drilling Monitoring Dashboard (Starter Template)
 
-This Streamlit app visualizes real-time drilling sensor data with a dark theme and summary alerts.
+This Streamlit app simulates live drilling data and displays animated graphs with Plotly, including dynamic alert annotations.
 
 ## Features
-- Black-themed UI with live sensor visualizations
-- Expandable panels for summaries and correlations
-- Summary alerts for anomalies like bit stall, flow loss, and high DP
 
-## Run Locally
+- Auto-refreshing data stream
+- Animated time-series charts
+- Dynamic in-graph alert markers
+- Black-themed dashboard layout
+
+## How to Run
+
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Deploy
-Push to GitHub and deploy using https://share.streamlit.io
+## Deployment
+
+Push to GitHub and deploy via https://share.streamlit.io for a live dashboard experience.
