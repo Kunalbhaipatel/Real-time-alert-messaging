@@ -1,18 +1,17 @@
-# 🛠️ Drilling Dashboard with Visual Insights + Real-Time Alerts
+# 🛠️ Live Drilling Dashboard with Alerts
 
-Streamlit app for visualizing drilling sensor data with built-in alerting for bit stalls, flow loss, and pressure spikes.
+This Streamlit app visualizes real-time drilling sensor data with a dark theme and summary alerts.
 
-## ▶️ Run Locally
+## Features
+- Black-themed UI with live sensor visualizations
+- Expandable panels for summaries and correlations
+- Summary alerts for anomalies like bit stall, flow loss, and high DP
 
+## Run Locally
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## 🚀 Deploy on Streamlit Cloud
-
-Push to GitHub, then deploy at https://share.streamlit.io
-
----
-
-Created for enhanced operational monitoring in drilling.
+## Deploy
+Push to GitHub and deploy using https://share.streamlit.io
